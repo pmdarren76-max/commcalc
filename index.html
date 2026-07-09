@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>佣金試算器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1d24;
+    --ink-soft: #3d4250;
+    --ink-muted: #6b7280;
+    --paper: #faf8f3;
+    --paper-warm: #f4efe4;
+    --line: #d8d0bd;
+    --line-soft: #e8e2d3;
+    --accent: #8b2e1f;
+    --accent-soft: #c5876a;
+    --good: #2d5f3f;
+    --good-bg: #e8efe6;
+    --root-bg: #f6c988;
+    --root-line: #c98f34;
+    --tier2-bg: #8fcdf0;
+    --tier2-line: #3f8fbf;
+    --tier3-bg: #c79cec;
+    --tier3-line: #8a56c4;
+    --tier4-bg: #e8938f;
+    --tier4-line: #b8443d;
+    --serif: "Fraunces", "Noto Serif TC", Georgia, serif;
+    --sans: "Noto Sans TC", -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+  }
+  .wrap { max-width: 1900px; margin: 0 auto; padding: 40px 32px 80px; }
+
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  header .kicker {
+    font-size: 12px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  header h1 {
+    font-family: var(--serif);
+    font-size: 34px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    max-width: 760px;
+  }
+  header p code { font-size: 0.92em; }
+
+  .tab-bar {
+    display: flex;
+    gap: 32px;
+    border-bottom: 1px solid var(--line);
+    margin-top: 22px;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    padding: 10px 2px 12px;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink-muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+  }
+  .tab-btn:hover { color: var(--ink); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line-soft);
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .toggle-row:first-of-type { padding-top: 0; }
+  .toggle-label { font-size: 13.5px; color: var(--ink-soft); }
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toggle-side { font-size: 12.5px; color: var(--ink-muted); font-weight: 600; }
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #c9beaa;
+    transition: 0.2s;
+    border-radius: 22px;
+  }
+  .switch .slider::before {
+    position: absolute;
+    content: "";
+    height: 16px; width: 16px;
+    left: 3px; bottom: 3px;
+    background-color: #fff;
+    transition: 0.2s;
+    border-radius: 50%;
+  }
+  .switch input:checked + .slider { background-color: var(--accent); }
+  .switch input:checked + .slider::before { transform: translateX(20px); }
+
+  /* 開關關閉時，隱藏對應欄位 */
+  body.no-rebate .rebate-row { display: none; }
+  body.no-venuefee .venuefee-row { display: none; }
+  body.no-venuefee #sharedVenueFeeRow { display: none; }
+  body.no-venuefee #lossVenueFeeRow { display: none; }
+  body.no-rebate .term-rebate { display: none; }
+  body.no-venuefee .term-venuefee { display: none; }
+  body.no-rebate.no-venuefee .term-paren { display: none; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: auto minmax(420px, 1fr);
+    gap: 40px;
+    align-items: start;
+  }
+  @media (max-width: 1440px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* ===== LEFT: tree ===== */
+  .tree-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    padding: 18px;
+    position: sticky;
+    top: 20px;
+    overflow-x: auto;
+  }
+  .tree-panel h2 {
+    font-family: var(--serif);
+    font-size: 18px;
+    margin: 4px 8px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .tree-panel h2 .title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .reset-btn {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    background: #fff;
+    border: 1px solid var(--accent-soft);
+    border-radius: 4px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .reset-btn:hover { background: var(--paper-warm); }
+  .tree-panel h2 .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent); display: inline-block;
+  }
+  .tree-canvas {
+    position: relative;
+    width: 100%;
+    min-width: 900px;
+    height: 1550px;
+    overflow: visible;
+  }
+  .tree-canvas svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  .tree-canvas svg path {
+    fill: none;
+    stroke: #9a9280;
+    stroke-width: 2;
+  }
+  .edge-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--accent);
+    background: var(--paper);
+    padding: 1px 6px;
+    white-space: nowrap;
+  }
+
+  .node-box {
+    position: absolute;
+    border: 2px solid;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.06);
+  }
+  .node-box .name {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .node-box .rate-line {
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .node-box .rate-line input {
+    width: 42px;
+    text-align: center;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 1px 2px;
+    background: #fff;
+  }
+  .node-box .ggr-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 11.5px;
+    margin-bottom: 8px;
+    color: var(--ink-soft);
+  }
+  .node-box .ggr-line input {
+    width: 66px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 2px 4px;
+    background: #fffdf7;
+  }
+  .node-box .fee-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 11px;
+    margin-bottom: 6px;
+    color: var(--ink-muted);
+  }
+  .node-box .fee-line input {
+    width: 56px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    padding: 1px 3px;
+    background: #fff;
+  }
+  .node-box .carryin-row {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 11px;
+    margin-bottom: 8px;
+    color: var(--bad);
+  }
+  body.mode-extend .node-box .carryin-row { display: flex; }
+  .node-box .carryin-row input {
+    width: 66px;
+    border: 1px solid var(--bad);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 2px 4px;
+    background: #fff6f5;
+    color: var(--bad);
+  }
+  .node-box .result-lines {
+    border-top: 1px dashed rgba(0,0,0,0.25);
+    padding-top: 6px;
+    font-size: 12px;
+    line-height: 1.65;
+  }
+  .node-box .result-lines .r-label { color: var(--ink-muted); }
+  .node-box .result-lines .r-val { font-family: var(--mono); font-weight: 700; }
+  .node-box .result-lines .net-row .r-val { color: var(--accent); font-size: 13.5px; }
+
+  .node-root { background: var(--root-bg); border-color: var(--root-line); }
+  .node-tier2 { background: var(--tier2-bg); border-color: var(--tier2-line); }
+  .node-tier3 { background: var(--tier3-bg); border-color: var(--tier3-line); }
+  .node-tier4 { background: var(--tier4-bg); border-color: var(--tier4-line); }
+
+  /* ===== RIGHT: explanation + table ===== */
+  .info-panel { padding-top: 4px; }
+  .info-block {
+    background: #fff;
+    border: 1px solid var(--line);
+    padding: 20px 24px;
+    margin-bottom: 22px;
+  }
+  .info-block h3 {
+    font-family: var(--serif);
+    font-size: 17px;
+    margin: 0 0 12px;
+    color: var(--ink);
+  }
+  .info-block ul { margin: 0; padding-left: 20px; }
+  .info-block li { margin-bottom: 5px; font-size: 14px; }
+  .info-block li .lbl { color: var(--ink-soft); }
+  .info-block li .val { font-family: var(--mono); font-weight: 700; color: var(--accent); }
+  .total-line {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--line);
+    font-size: 14.5px;
+    font-weight: 700;
+  }
+  .total-line .val { font-family: var(--mono); color: var(--accent); font-size: 16px; }
+
+  .result-line {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  .result-line .val { font-family: var(--mono); font-weight: 700; }
+  .final-result {
+    margin-top: 12px;
+    padding: 14px 16px;
+    background: var(--good-bg);
+    border-left: 3px solid var(--good);
+    font-size: 15px;
+  }
+  .final-result .big {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--good);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: #fff;
+  }
+  th {
+    background: var(--ink);
+    color: #f4efe4;
+    text-align: left;
+    padding: 9px 10px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+    font-size: 12.5px;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.num { font-family: var(--mono); }
+  td.net-cell { font-family: var(--mono); font-weight: 700; color: var(--accent); }
+  tr.row-root td { background: #fdf3e2; }
+
+  .check-line {
+    margin-top: 12px;
+    font-size: 12.5px;
+    color: var(--ink-muted);
+    font-family: var(--mono);
+  }
+  .check-line .ok { color: var(--good); font-weight: 700; }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 18px;
+    border-top: 2px solid var(--ink);
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Interactive Calculator</div>
+  <h1>佣金試算器</h1>
+  <p>
+    左邊樹狀圖可以直接修改每個代理的 <code>GGR</code>、<code>場館費率</code>、<code>返水</code>、<code>平台費率</code>、<code>層級比例</code>，右邊的說明文字與表格會即時重新計算。
+    規則：<code>NGR ＝ Σ[<span class="term-paren">(</span>GGR<span class="term-venuefee"> − 場館費</span><span class="term-rebate"> − 返水</span><span class="term-paren">)</span> × 場館返佣比例%] − 平台費</code>。每個代理拿到「自己整條下線 NGR 總和 × 自己的層級比例」，再扣掉<b>直屬下級</b>的應派發加總，差額才是自己的帳面淨留。
+  </p>
+
+  <div class="tab-bar">
+    <button type="button" class="tab-btn active" data-tab="noextend">負盈利不展延</button>
+    <button type="button" class="tab-btn" data-tab="extend">負盈利展延</button>
+  </div>
+
+  <div style="margin-top:16px; padding:16px 18px; background:var(--paper-warm); border:1px solid var(--line); font-size:14px;">
+    <div style="font-weight:700; margin-bottom:12px; font-size:15px;">GGR返佣設置（兩個頁籤都適用）</div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">GGR是否扣除返水</span>
+      <span class="toggle-wrap">
+        <span class="toggle-side">不扣</span>
+        <label class="switch">
+          <input type="checkbox" id="rebateDeductSwitch" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-side">扣</span>
+      </span>
+    </div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">GGR是否扣除場館費用</span>
+      <span class="toggle-wrap">
+        <span class="toggle-side">不扣</span>
+        <label class="switch">
+          <input type="checkbox" id="venueDeductSwitch" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-side">扣</span>
+      </span>
+    </div>
+
+    <div class="toggle-row" id="lossVenueFeeRow">
+      <span class="toggle-label">平台輸時也計算場館費</span>
+      <span class="toggle-wrap">
+        <span class="toggle-side">不計算</span>
+        <label class="switch">
+          <input type="checkbox" id="lossVenueFeeSwitch">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-side">計算</span>
+      </span>
+    </div>
+
+    <div class="toggle-row" id="sharedVenueFeeRow" style="border-bottom:none;">
+      <span class="toggle-label">共用場館費率(%)（一鍵拉齊）</span>
+      <span class="toggle-wrap">
+        <input type="number" id="sharedVenueFee" value="" min="0" max="100" step="0.1" placeholder="格式例 百分之十：10" style="width:150px; border:1px solid var(--line); border-radius:3px; font-family:var(--mono); font-size:13px; padding:5px 8px;">
+        <span style="color:var(--ink-muted); font-size:12px;">%　留空＝未啟用</span>
+      </span>
+    </div>
+  </div>
+
+  <div style="margin-top:16px; padding:12px 16px; background:var(--paper-warm); border:1px solid var(--line); font-size:14px;">
+    <div style="font-weight:600; margin-bottom:8px;">平台費計算基礎（兩個頁籤都適用）</div>
+    <div style="display:flex; gap:24px; margin-bottom:12px;">
+      <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+        <input type="radio" name="platFeeBase" value="afterVenue" checked>
+        <span><code>平台費 ＝ GGR返佣 × 平台費率%</code>　<span style="color:var(--ink-muted); font-size:12.5px;">（預設，基礎較輕）</span></span>
+      </label>
+      <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+        <input type="radio" name="platFeeBase" value="ggr">
+        <span><code>平台費 ＝ GGR × 平台費率%</code>　<span style="color:var(--ink-muted); font-size:12.5px;">（基礎較重，代理拿少一點）</span></span>
+      </label>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; padding-top:10px; border-top:1px solid var(--line-soft);">
+      <span>平台費率 = <input type="number" id="globalPlatFeeRate" value="0" min="0" max="100" step="0.1" style="width:90px; border:1px solid var(--line); border-radius:3px; font-family:var(--mono); font-size:13px; padding:3px 6px;">%</span>
+      <span style="color:var(--ink-muted); font-size:12.5px;">所有代理共用此設置（平台抽成％＋充提手續費％＋活動費用％加總）</span>
+    </div>
+  </div>
+
+  <div id="noExtendControls" style="margin-top:16px; padding:12px 16px; background:var(--paper-warm); border:1px solid var(--line); display:flex; align-items:center; gap:10px; font-size:14px;">
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600;">
+      <input type="checkbox" id="absorbNegSwitch" checked style="width:16px; height:16px;">
+      吸收負盈利（平台層級單一設定）
+    </label>
+    <span style="color:var(--ink-muted); font-size:12.5px;">關閉後，某代理若虧損，帳面負值會保留、抵扣給上層更多派發</span>
+  </div>
+
+  <div id="extendControls" style="margin-top:16px; padding:12px 16px; background:var(--paper-warm); border:1px solid var(--line); font-size:13.5px; color:var(--ink-soft); display:none;">
+    <div style="margin-bottom:10px;"><b>展延負盈利</b>：某個計算階段為負值時，當期不發佣金，負值累積到「上期結餘」欄位、留到下一期抵銷。三個方案差在「延展發生在哪一個階段」：</div>
+    <div style="margin-bottom:6px; font-size:12.5px; color:var(--ink-muted); font-weight:600;">補充規則：</div>
+    <div style="margin-bottom:6px; font-size:12.5px; color:var(--ink-muted);"><code>GGR返佣 ＝ Σ[<span class="term-paren">(</span>GGR<span class="term-venuefee"> − 場館費</span><span class="term-rebate"> − 返水</span><span class="term-paren">)</span> × 場館返佣比例%]</code></div>
+    <div style="margin-bottom:10px; font-size:12.5px; color:var(--ink-muted);"><code id="platFeeSummaryFormula">平台費 ＝ GGR返佣 × 平台費率%</code>（平台抽成％＋充提手續費％＋活動費用％）</div>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <label style="display:flex; align-items:start; gap:8px; cursor:pointer;">
+        <input type="radio" name="deferScheme" value="1" checked style="margin-top:3px;">
+        <span><b>方案1（GGR 負值展延）</b>：當期佣金 ＝ ((GGR ＋ 上期結餘<span class="term-venuefee"> − 場館費</span><span class="term-rebate"> − 返水</span>) − 平台費) × 層級比例% − 下級佣金　　<span style="color:var(--ink-muted);">— <span class="term-venuefee">場館費、</span><span class="term-rebate">返水</span>都還沒扣之前就展延（最早階段）</span></span>
+      </label>
+      <label style="display:flex; align-items:start; gap:8px; cursor:pointer;">
+        <input type="radio" name="deferScheme" value="2" style="margin-top:3px;">
+        <span><b>方案2（GGR返佣 負值展延）</b>：當期佣金 ＝ (GGR返佣 ＋ 上期結餘 − 平台費) × 層級比例% − 下級佣金　　<span style="color:var(--ink-muted);">— 扣完<span class="term-venuefee">場館費、</span><span class="term-rebate">返水，</span>但平台費還沒扣之前展延</span></span>
+      </label>
+      <label style="display:flex; align-items:start; gap:8px; cursor:pointer;">
+        <input type="radio" name="deferScheme" value="3" style="margin-top:3px;">
+        <span><b>方案3（NGR 負值展延）</b>：當期佣金 ＝ (NGR ＋ 上期結餘) × 層級比例% − 下級佣金　　<span style="color:var(--ink-muted);">— 扣完<span class="term-venuefee">場館費、</span><span class="term-rebate">返水、</span>平台費之後才展延（最晚階段）</span></span>
+      </label>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ===== LEFT: TREE ===== -->
+  <div class="tree-panel">
+    <h2>
+      <span class="title-group"><span class="dot"></span>代理樹狀結構（可編輯 GGR / 比例）</span>
+      <button type="button" class="reset-btn" id="resetTreeBtn">重置</button>
+    </h2>
+    <div class="tree-canvas" id="treeCanvas">
+      <svg id="edgeSvg" viewBox="0 0 900 1550" preserveAspectRatio="xMidYMin meet"></svg>
+
+      <!-- 總代理 -->
+      <div class="node-box node-root" id="box-root" style="left:340px; top:10px; width:200px;">
+        <div class="name">總代理</div>
+        <div class="rate-line">層級比例 <input type="number" id="rate-root" value="60" min="0" max="100" step="1">%</div>
+        <div class="ggr-line">自身 GGR = <input type="number" id="ggr-root" value="0"></div>
+        <div class="fee-line venuefee-row">場館費率 <input type="number" id="venuefee-root" value="0" min="0" max="100" step="0.1">%</div>
+        <div class="fee-line rebate-row">返水 <input type="number" id="rebate-root" value="0"></div>
+        <div class="fee-line">平台費 <span class="r-val" id="platfee-root" style="font-family:var(--mono); font-weight:700; color:var(--ink-soft);">0</span></div>
+        <div class="carryin-row">上期結餘 = <input type="number" id="carryin-root" value="0"></div>
+        <div class="result-lines">
+          <div><span class="r-label">平台實際撥款</span> <span class="r-val" id="recv-root" style="color:#2d5f3f; font-size:15px;">-</span></div>
+          <div><span class="r-label">給下級</span> <span class="r-val" id="paydown-root">-</span></div>
+          <div class="net-row"><span class="r-label">自己留下（帳面）</span> <span class="r-val" id="net-root">-</span></div>
+          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">本期結轉到下期</span> <span id="carryout-root">-</span></div>
+        </div>
+      </div>
+
+      <!-- A代理 -->
+      <div class="node-box node-tier2" id="box-A" style="left:40px; top:380px; width:210px;">
+        <div class="name">A代理</div>
+        <div class="rate-line">層級比例 <input type="number" id="rate-A" value="50" min="0" max="100" step="1">%</div>
+        <div class="ggr-line">自身 GGR = <input type="number" id="ggr-A" value="2000"></div>
+        <div class="fee-line venuefee-row">場館費率 <input type="number" id="venuefee-A" value="0" min="0" max="100" step="0.1">%</div>
+        <div class="fee-line rebate-row">返水 <input type="number" id="rebate-A" value="0"></div>
+        <div class="fee-line">平台費 <span class="r-val" id="platfee-A" style="font-family:var(--mono); font-weight:700; color:var(--ink-soft);">0</span></div>
+        <div class="carryin-row">上期結餘 = <input type="number" id="carryin-A" value="0"></div>
+        <div class="result-lines">
+          <div><span class="r-label">拿到</span> <span class="r-val" id="recv-A">-</span></div>
+          <div><span class="r-label">給下級</span> <span class="r-val" id="paydown-A">-</span></div>
+          <div class="net-row"><span class="r-label">帳面淨留</span> <span class="r-val" id="net-A">-</span></div>
+          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">本期結轉到下期</span> <span id="carryout-A">-</span></div>
+        </div>
+      </div>
+
+      <!-- B代理 -->
+      <div class="node-box node-tier2" id="box-B" style="left:630px; top:380px; width:210px;">
+        <div class="name">B代理</div>
+        <div class="rate-line">層級比例 <input type="number" id="rate-B" value="40" min="0" max="100" step="1">%</div>
+        <div class="ggr-line">自身 GGR = <input type="number" id="ggr-B" value="1000"></div>
+        <div class="fee-line venuefee-row">場館費率 <input type="number" id="venuefee-B" value="0" min="0" max="100" step="0.1">%</div>
+        <div class="fee-line rebate-row">返水 <input type="number" id="rebate-B" value="0"></div>
+        <div class="fee-line">平台費 <span class="r-val" id="platfee-B" style="font-family:var(--mono); font-weight:700; color:var(--ink-soft);">0</span></div>
+        <div class="carryin-row">上期結餘 = <input type="number" id="carryin-B" value="0"></div>
+        <div class="result-lines">
+          <div><span class="r-label">拿到 / 帳面淨留</span></div>
+          <div class="net-row"><span class="r-val" id="net-B">-</span></div>
+          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">本期結轉到下期</span> <span id="carryout-B">-</span></div>
+        </div>
+      </div>
+
+      <!-- C代理 -->
+      <div class="node-box node-tier3" id="box-C" style="left:0px; top:820px; width:190px;">
+        <div class="name">C代理</div>
+        <div class="rate-line">層級比例 <input type="number" id="rate-C" value="20" min="0" max="100" step="1">%</div>
+        <div class="ggr-line">自身 GGR = <input type="number" id="ggr-C" value="3000"></div>
+        <div class="fee-line venuefee-row">場館費率 <input type="number" id="venuefee-C" value="0" min="0" max="100" step="0.1">%</div>
+        <div class="fee-line rebate-row">返水 <input type="number" id="rebate-C" value="0"></div>
+        <div class="fee-line">平台費 <span class="r-val" id="platfee-C" style="font-family:var(--mono); font-weight:700; color:var(--ink-soft);">0</span></div>
+        <div class="carryin-row">上期結餘 = <input type="number" id="carryin-C" value="0"></div>
+        <div class="result-lines">
+          <div><span class="r-label">拿到 / 帳面淨留</span></div>
+          <div class="net-row"><span class="r-val" id="net-C">-</span></div>
+          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">本期結轉到下期</span> <span id="carryout-C">-</span></div>
+        </div>
+      </div>
+
+      <!-- D代理 -->
+      <div class="node-box node-tier3" id="box-D" style="left:280px; top:820px; width:190px;">
+        <div class="name">D代理</div>
+        <div class="rate-line">層級比例 <input type="number" id="rate-D" value="20" min="0" max="100" step="1">%</div>
+        <div class="ggr-line">自身 GGR = <input type="number" id="ggr-D" value="5000"></div>
+        <div class="fee-line venuefee-row">場館費率 <input type="number" id="venuefee-D" value="0" min="0" max="100" step="0.1">%</div>
+        <div class="fee-line rebate-row">返水 <input type="number" id="rebate-D" value="0"></div>
+        <div class="fee-line">平台費 <span class="r-val" id="platfee-D" style="font-family:var(--mono); font-weight:700; color:var(--ink-soft);">0</span></div>
+        <div class="carryin-row">上期結餘 = <input type="number" id="carryin-D" value="0"></div>
+        <div class="result-lines">
+          <div><span class="r-label">拿到</span> <span class="r-val" id="recv-D">-</span></div>
+          <div><span class="r-label">給下級</span> <span class="r-val" id="paydown-D">-</span></div>
+          <div class="net-row"><span class="r-label">帳面淨留</span> <span class="r-val" id="net-D">-</span></div>
+          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">本期結轉到下期</span> <span id="carryout-D">-</span></div>
+        </div>
+      </div>
+
+      <!-- E代理 -->
+      <div class="node-box node-tier4" id="box-E" style="left:280px; top:1260px; width:190px;">
+        <div class="name">E代理</div>
+        <div class="rate-line">層級比例 <input type="number" id="rate-E" value="10" min="0" max="100" step="1">%</div>
+        <div class="ggr-line">自身 GGR = <input type="number" id="ggr-E" value="4000"></div>
+        <div class="fee-line venuefee-row">場館費率 <input type="number" id="venuefee-E" value="0" min="0" max="100" step="0.1">%</div>
+        <div class="fee-line rebate-row">返水 <input type="number" id="rebate-E" value="0"></div>
+        <div class="fee-line">平台費 <span class="r-val" id="platfee-E" style="font-family:var(--mono); font-weight:700; color:var(--ink-soft);">0</span></div>
+        <div class="carryin-row">上期結餘 = <input type="number" id="carryin-E" value="0"></div>
+        <div class="result-lines">
+          <div><span class="r-label">拿到 / 帳面淨留</span></div>
+          <div class="net-row"><span class="r-val" id="net-E">-</span></div>
+          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">本期結轉到下期</span> <span id="carryout-E">-</span></div>
+        </div>
+      </div>
+
+      <!-- edge amount labels -->
+      <div class="edge-label" id="edge-root-A" style="left:280px; top:210px;">-</div>
+      <div class="edge-label" id="edge-root-B" style="left:590px; top:210px;">-</div>
+      <div class="edge-label" id="edge-A-C" style="left:100px; top:450px;">-</div>
+      <div class="edge-label" id="edge-A-D" style="left:290px; top:450px;">-</div>
+      <div class="edge-label" id="edge-D-E" style="left:375px; top:700px;">-</div>
+    </div>
+  </div>
+
+  <!-- ===== RIGHT: explanation + table ===== -->
+  <div class="info-panel">
+
+    <div class="info-block">
+      <h3>整串代理線的 GGR 總和</h3>
+      <ul id="ggrList"></ul>
+      <div class="total-line">總 GGR ＝ <span class="val" id="totalGGRExpr">-</span></div>
+    </div>
+
+    <div class="info-block">
+      <h3>套用總代理層級比例</h3>
+      <div class="result-line">平台應給總代理 ＝ 總GGR × 總代理層級比例</div>
+      <div class="final-result">
+        總共佣金 ＝ <span id="totalGGRVal">-</span> × <span id="rootRateVal">-</span>％ ＝
+        <span class="big" id="finalCommission">-</span>
+      </div>
+      <p style="margin:10px 0 0; font-size:13px; color:var(--ink-muted);">
+        ⚠️ 這是<b>平台唯一實際撥款</b>的金額，只跟總代理結算一次，是整包（含要轉給下級的部分）。
+        總代理拿到這筆錢後，會依內部約定分給 A、B 等下級，自己留下的才是「自己留下（帳面）」。以下每個代理的「帳面淨留」都是內部分潤試算，不是平台另外撥款。
+      </p>
+    </div>
+
+    <div class="info-block">
+      <h3>逐級分配明細表</h3>
+      <table id="detailTable">
+        <thead>
+          <tr>
+            <th>代理</th>
+            <th>自己那條線的 GGR</th>
+            <th>拿到金額（× 自己比例）</th>
+            <th>往下要付多少</th>
+            <th>自己淨留</th>
+          </tr>
+        </thead>
+        <tbody id="detailTbody"></tbody>
+      </table>
+      <div class="check-line" id="checkLine"></div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  代理線 GGR 級差佣金試算器 · 純前端計算，不會送出任何資料
+</footer>
+
+</div>
+
+<script>
+// ---------- tab 模式 ----------
+let currentTab = 'noextend';   // 'noextend' | 'extend'
+
+// ---------- tree data ----------
+const nodeDefs = [
+  { id: 'root', name: '總代理', parentId: null },
+  { id: 'A',    name: 'A代理',  parentId: 'root' },
+  { id: 'B',    name: 'B代理',  parentId: 'root' },
+  { id: 'C',    name: 'C代理',  parentId: 'A' },
+  { id: 'D',    name: 'D代理',  parentId: 'A' },
+  { id: 'E',    name: 'E代理',  parentId: 'D' },
+];
+
+const edges = [
+  ['root', 'A'], ['root', 'B'],
+  ['A', 'C'], ['A', 'D'],
+  ['D', 'E'],
+];
+
+// 每個節點的初始值，供「重置」按鈕還原用
+const nodeDefaults = {
+  root: { rate: 60, ggr: 0,    venuefee: 0, rebate: 0, carryin: 0 },
+  A:    { rate: 50, ggr: 2000, venuefee: 0, rebate: 0, carryin: 0 },
+  B:    { rate: 40, ggr: 1000, venuefee: 0, rebate: 0, carryin: 0 },
+  C:    { rate: 20, ggr: 3000, venuefee: 0, rebate: 0, carryin: 0 },
+  D:    { rate: 20, ggr: 5000, venuefee: 0, rebate: 0, carryin: 0 },
+  E:    { rate: 10, ggr: 4000, venuefee: 0, rebate: 0, carryin: 0 },
+};
+
+function children(id) {
+  return nodeDefs.filter(n => n.parentId === id).map(n => n.id);
+}
+
+function getGGR(id) {
+  const el = document.getElementById('ggr-' + id);
+  const v = el ? parseFloat(el.value) : NaN;
+  return isNaN(v) ? 0 : v;
+}
+function getRate(id) {
+  const el = document.getElementById('rate-' + id);
+  const v = el ? parseFloat(el.value) : NaN;
+  return isNaN(v) ? 0 : v / 100;
+}
+function getRatePct(id) {
+  const el = document.getElementById('rate-' + id);
+  const v = el ? parseFloat(el.value) : NaN;
+  return isNaN(v) ? 0 : v;
+}
+function getSharedVenueFeeRate() {
+  const el = document.getElementById('sharedVenueFee');
+  if (!el || el.value === '') return null;   // 留空＝未啟用
+  const v = parseFloat(el.value);
+  return isNaN(v) ? null : v / 100;   // 輸入0＝啟用，覆蓋為0%
+}
+function getVenueFeeRate(id) {
+  const shared = getSharedVenueFeeRate();
+  if (shared !== null) return shared;   // 共用場館費率已啟用，覆蓋掉個別設定
+  const el = document.getElementById('venuefee-' + id);
+  const v = el ? parseFloat(el.value) : NaN;
+  return isNaN(v) ? 0 : v / 100;
+}
+function getRebate(id) {
+  const el = document.getElementById('rebate-' + id);
+  const v = el ? parseFloat(el.value) : NaN;
+  return isNaN(v) ? 0 : v;
+}
+function getPlatFeeRate(id) {
+  // 平台費率現在是全局共用設置，所有代理都用同一個值
+  const el = document.getElementById('globalPlatFeeRate');
+  const v = el ? parseFloat(el.value) : NaN;
+  return isNaN(v) ? 0 : v / 100;
+}
+function getScheme() {
+  const el = document.querySelector('input[name="deferScheme"]:checked');
+  return el ? el.value : '1';
+}
+// 平台費計算基礎：'afterVenue'＝GGR返佣（預設）／'ggr'＝GGR（較重）
+function getPlatFeeBase() {
+  const el = document.querySelector('input[name="platFeeBase"]:checked');
+  return el ? el.value : 'afterVenue';
+}
+// 依全局選項，從「GGR」與「GGR返佣」兩個候選值中挑出正確的平台費計算基礎
+function platFeeBaseValue(ggrVal, afterVenueVal) {
+  return getPlatFeeBase() === 'ggr' ? ggrVal : afterVenueVal;
+}
+
+// 自己那條線的 GGR（自己 + 所有下線的自身 GGR 加總）—— 最原始的營收數字，尚未扣任何費用
+function subtreeGGR(id) {
+  const own = getGGR(id);
+  const kids = children(id);
+  return kids.reduce((sum, cid) => sum + subtreeGGR(cid), own);
+}
+// 收集自己 + 所有下線的自身 GGR，用來組成 breakdown 文字
+function collectOwnGGRs(id) {
+  const own = getGGR(id);
+  const kids = children(id);
+  let list = own > 0 ? [own] : (kids.length === 0 ? [own] : []);
+  kids.forEach(cid => { list = list.concat(collectOwnGGRs(cid)); });
+  return list;
+}
+
+// GGR返佣設置：三個開關
+function getRebateDeductSwitch() {
+  const el = document.getElementById('rebateDeductSwitch');
+  return el ? el.checked : true;
+}
+function getVenueDeductSwitch() {
+  const el = document.getElementById('venueDeductSwitch');
+  return el ? el.checked : true;
+}
+function getLossVenueFeeSwitch() {
+  const el = document.getElementById('lossVenueFeeSwitch');
+  return el ? el.checked : false;
+}
+// 統一計算「扣完場館費、返水」之後的金額，套用上述三個開關
+// - 不扣場館費用開關關閉 → 場館費恆為0
+// - 平台輸(ggrVal≤0)時，預設不計算場館費，除非「平台輸時也計算」開關打開
+// - 不扣返水開關關閉 → 返水恆不扣
+function computeAfterVenue(ggrVal, id) {
+  let fee = 0;
+  if (getVenueDeductSwitch() && (ggrVal > 0 || getLossVenueFeeSwitch())) {
+    fee = ggrVal * getVenueFeeRate(id);
+  }
+  const rebateAmt = getRebateDeductSwitch() ? getRebate(id) : 0;
+  return ggrVal - fee - rebateAmt;
+}
+
+// own（自己那一格）扣完場館費、返水之後 ＝「own GGR返佣」貢獻
+function ownAfterVenue(id) {
+  return computeAfterVenue(getGGR(id), id);
+}
+// 整條下線扣完場館費、返水之後的加總（GGR返佣）
+function subtreeAfterVenue(id) {
+  const own = ownAfterVenue(id);
+  const kids = children(id);
+  return kids.reduce((sum, cid) => sum + subtreeAfterVenue(cid), own);
+}
+// 平台費：只在基數為正時才抽（負數不抽費，比照原始底層邏輯）
+// 補充規則：平台費 ＝ GGR × 平台費率%（基礎一律是原始GGR，不是GGR返佣）
+function platFeeOn(baseValue, id) {
+  return baseValue > 0 ? baseValue * getPlatFeeRate(id) : 0;
+}
+// 整條下線的 NGR（扣完場館費、返水、平台費之後）
+// 平台費基礎依全局選項：GGR返佣（預設）或 GGR
+function subtreeNGR(id) {
+  const afterVenue = subtreeAfterVenue(id);
+  const base = platFeeBaseValue(subtreeGGR(id), afterVenue);
+  const fee = platFeeOn(base, id);
+  return afterVenue - fee;
+}
+
+// 平台費實際金額（供節點方塊顯示用），依目前頁籤/方案採用對應的計算基礎
+function platFeeAmount(id) {
+  if (currentTab === 'extend') {
+    const scheme = getScheme();
+    if (scheme === '1') {
+      const effectiveGGR = subtreeGGR(id) + getCarryIn(id);
+      if (effectiveGGR <= 0) return 0;
+      const afterVenue = computeAfterVenue(effectiveGGR, id);
+      const base = platFeeBaseValue(effectiveGGR, afterVenue);
+      return platFeeOn(base, id);
+    }
+    if (scheme === '2') {
+      const effectiveAfterVenue = subtreeAfterVenue(id) + getCarryIn(id);
+      if (effectiveAfterVenue <= 0) return 0;
+      const base = platFeeBaseValue(subtreeGGR(id), effectiveAfterVenue);
+      return platFeeOn(base, id);
+    }
+    // 方案3：跟不展延一樣的基礎（結餘加在 NGR 之後，不影響平台費計算）
+  }
+  const afterVenue = subtreeAfterVenue(id);
+  const base = platFeeBaseValue(subtreeGGR(id), afterVenue);
+  return platFeeOn(base, id);
+}
+
+// 全局開關：吸收負盈利（對應 dl_in_charge_ggr_status，平台層級單一設定，僅「不展延」模式下有作用）
+function getAbsorbSwitch() {
+  const el = document.getElementById('absorbNegSwitch');
+  return el ? el.checked : true;
+}
+// 上期結餘（僅「展延」模式下讀取；不展延模式一律視為 0）
+function getCarryIn(id) {
+  const el = document.getElementById('carryin-' + id);
+  const v = el ? parseFloat(el.value) : NaN;
+  return isNaN(v) ? 0 : v;
+}
+
+// settleAmount：
+// 「不展延」：NGR × 層級比例%，套用吸收負盈利開關（開＝≤0歸零；關＝保留負值抵扣上層）
+// 「展延」：依選定方案，在對應階段加回上期結餘；該階段 ≤0 時當期不發佣金（固定歸零），負值留到下一期
+function settleAmount(id) {
+  if (currentTab === 'extend') {
+    const scheme = getScheme();
+    const rate = getRate(id);
+
+    if (scheme === '1') {
+      // 方案1：GGR 負值展延（場館費、返水都在加回結餘之後才扣，最早階段）
+      const effectiveGGR = subtreeGGR(id) + getCarryIn(id);
+      if (effectiveGGR <= 0) return 0;
+      const afterVenue = computeAfterVenue(effectiveGGR, id);
+      const base = platFeeBaseValue(effectiveGGR, afterVenue);
+      const fee = platFeeOn(base, id);
+      const ngr = afterVenue - fee;
+      return ngr > 0 ? ngr * rate : 0;
+    }
+    if (scheme === '2') {
+      // 方案2：GGR返佣 負值展延（平台費在加回結餘之後才扣）
+      // 結餘加在 GGR返佣 這一階，不影響原始 GGR，所以「GGR 基礎」選項這裡用未加結餘的 subtreeGGR
+      const effectiveAfterVenue = subtreeAfterVenue(id) + getCarryIn(id);
+      if (effectiveAfterVenue <= 0) return 0;
+      const base = platFeeBaseValue(subtreeGGR(id), effectiveAfterVenue);
+      const fee = platFeeOn(base, id);
+      const ngr = effectiveAfterVenue - fee;
+      return ngr > 0 ? ngr * rate : 0;
+    }
+    // 方案3：NGR 負值展延（最晚階段）
+    const effective = subtreeNGR(id) + getCarryIn(id);
+    return effective > 0 ? effective * rate : 0;
+  }
+
+  // 不展延
+  const raw = subtreeNGR(id) * getRate(id);
+  if (getAbsorbSwitch() && raw <= 0) return 0;
+  return raw;
+}
+
+// carryOut：展延模式下，本期結轉到下一期的負值（僅供顯示，依方案對應不同階段判斷）
+function carryOut(id) {
+  if (currentTab !== 'extend') return 0;
+  const scheme = getScheme();
+  if (scheme === '1') {
+    const effective = subtreeGGR(id) + getCarryIn(id);
+    return effective <= 0 ? effective : 0;
+  }
+  if (scheme === '2') {
+    const effective = subtreeAfterVenue(id) + getCarryIn(id);
+    return effective <= 0 ? effective : 0;
+  }
+  const effective = subtreeNGR(id) + getCarryIn(id);
+  return effective <= 0 ? effective : 0;
+}
+// distFirst：首次派發歸零保護（不論開關為何，一律套用，代理不會反被扣錢包）
+function distFirst(id) {
+  return Math.max(settleAmount(id), 0);
+}
+// 收集某代理底下「整條下線」所有代理 id（遞迴，不只是直屬子節點）
+function allDescendants(id) {
+  let list = [];
+  children(id).forEach(function(cid) {
+    list.push(cid);
+    list = list.concat(allDescendants(cid));
+  });
+  return list;
+}
+// lowerDeduct：只扣「直屬下級」的 settleAmount 加總
+// 因為每個代理的 settleAmount 本身已經用「整條下線加總的 GGR」去算，
+// 若再往下追溯所有子孫代理各自扣一次，同一筆業績會被重複扣除（詳見對話中 9,000 vs 10,200 的驗證）。
+// 只扣直屬下級，靠遞迴結構自然層層傳導，才不會重複計算。
+// 加總 ≤0 時跳過不扣
+function lowerDeduct(id) {
+  const sum = children(id).reduce((s, cid) => s + settleAmount(cid), 0);
+  return sum > 0 ? sum : 0;
+}
+// distFinal：扣完直屬下級後再次歸零保護，扣超的差額不會反扣上層
+function distFinal(id) {
+  return Math.max(distFirst(id) - lowerDeduct(id), 0);
+}
+
+// 相容舊命名（表格與節點顯示會用到）
+function received(id) { return distFirst(id); }
+function payDown(id) { return lowerDeduct(id); }
+function net(id) { return distFinal(id); }
+
+function fmt(n) {
+  const r = Math.round(n * 100) / 100;
+  return r.toLocaleString('zh-TW', { maximumFractionDigits: 2 });
+}
+
+// ---------- render ----------
+function render() {
+  // 補充規則文字：跟著「平台費計算基礎」選項同步
+  const isGgrBase = getPlatFeeBase() === 'ggr';
+  const summaryFormulaEl = document.getElementById('platFeeSummaryFormula');
+  if (summaryFormulaEl) summaryFormulaEl.textContent = isGgrBase ? '平台費 ＝ GGR × 平台費率%' : '平台費 ＝ GGR返佣 × 平台費率%';
+
+
+  // 共用場館費率：啟用時，停用並灰化每個代理自己的場館費率欄位，避免混淆
+  const sharedActive = getSharedVenueFeeRate() !== null;
+  nodeDefs.forEach(n => {
+    const vfEl = document.getElementById('venuefee-' + n.id);
+    if (vfEl) {
+      vfEl.disabled = sharedActive;
+      vfEl.title = sharedActive ? '已被共用場館費率覆蓋' : '';
+      vfEl.style.opacity = sharedActive ? '0.45' : '1';
+    }
+  });
+
+  // node boxes
+  nodeDefs.forEach(n => {
+    const recvEl = document.getElementById('recv-' + n.id);
+    const paydownEl = document.getElementById('paydown-' + n.id);
+    const netEl = document.getElementById('net-' + n.id);
+    const carryOutEl = document.getElementById('carryout-' + n.id);
+    const platFeeEl = document.getElementById('platfee-' + n.id);
+    if (recvEl) recvEl.textContent = fmt(received(n.id));
+    if (paydownEl) paydownEl.textContent = fmt(payDown(n.id));
+    if (netEl) netEl.textContent = fmt(net(n.id));
+    if (carryOutEl) carryOutEl.textContent = fmt(carryOut(n.id));
+    if (platFeeEl) platFeeEl.textContent = fmt(platFeeAmount(n.id));
+  });
+
+  // edge labels = 該子節點拿到的金額（= 上級付給它的錢）
+  edges.forEach(([p, c]) => {
+    const el = document.getElementById('edge-' + p + '-' + c);
+    if (el) el.textContent = fmt(received(c));
+  });
+
+  // right: GGR list
+  const ggrList = document.getElementById('ggrList');
+  ggrList.innerHTML = '';
+  const parts = [];
+  nodeDefs.forEach(n => {
+    const own = getGGR(n.id);
+    if (n.id === 'root' && own === 0) return; // 總代理無自身 GGR 時不列出
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="lbl">${n.name}自己的 GGR = </span><span class="val">${fmt(own)}</span>`;
+    ggrList.appendChild(li);
+    parts.push(fmt(own));
+  });
+  document.getElementById('totalGGRExpr').textContent = parts.join(' + ') + ' = ' + fmt(subtreeGGR('root'));
+
+  // right: final commission
+  const totalGGR = subtreeGGR('root');
+  const rootRatePct = getRatePct('root');
+  const finalComm = received('root');   // 平台實際撥款＝總代理從平台拿到的整包金額（扣下級前）
+  document.getElementById('totalGGRVal').textContent = fmt(totalGGR);
+  document.getElementById('rootRateVal').textContent = rootRatePct;
+  document.getElementById('finalCommission').textContent = fmt(finalComm);
+
+  // right: table
+  const tbody = document.getElementById('detailTbody');
+  tbody.innerHTML = '';
+  nodeDefs.forEach(n => {
+    const kids = children(n.id);
+    const own = getGGR(n.id);
+    const stGGR = subtreeGGR(n.id);
+    const stNGR = subtreeNGR(n.id);
+    const breakdown = collectOwnGGRs(n.id);
+    let breakdownStr = kids.length === 0
+      ? `${fmt(own)}（無下線）`
+      : `${fmt(stGGR)}（${breakdown.map(fmt).join('+')}）`;
+
+    // 展延模式：把上期結餘加回對應階段的效果，用「結果（原始±結餘，說明）」的格式直接顯示原因
+    if (currentTab === 'extend') {
+      const carryIn = getCarryIn(n.id);
+      if (carryIn !== 0) {
+        const scheme = getScheme();
+        let baseValue;
+        if (scheme === '1') baseValue = stGGR;
+        else if (scheme === '2') baseValue = subtreeAfterVenue(n.id);
+        else baseValue = stNGR;
+        const effective = baseValue + carryIn;
+        const carryStr = carryIn >= 0 ? ('+' + fmt(carryIn)) : fmt(carryIn);
+        const desc = kids.length === 0 ? '無下線' : breakdown.map(fmt).join('+');
+        breakdownStr = `${fmt(effective)}（${fmt(baseValue)}${carryStr}，${desc}）`;
+      }
+    }
+
+    let recvStr;
+    if (currentTab === 'extend') {
+      recvStr = `依方案${getScheme()}公式（含上期結餘）→ ${fmt(received(n.id))}`;
+    } else {
+      const rawRecv = stNGR * getRate(n.id);
+      recvStr = rawRecv < 0
+        ? `NGR ${fmt(stNGR)} × ${getRatePct(n.id)}% = ${fmt(rawRecv)} → 歸零保護 → 0`
+        : `NGR ${fmt(stNGR)} × ${getRatePct(n.id)}% = ${fmt(received(n.id))}`;
+    }
+    const payStr = kids.length === 0
+      ? '-'
+      : kids.map(cid => `付${nodeDefs.find(x => x.id === cid).name.replace('代理','')}：${fmt(settleAmount(cid))}`).join('　');
+
+    const tr = document.createElement('tr');
+    if (n.id === 'root') tr.classList.add('row-root');
+    tr.innerHTML = `
+      <td>${n.name}</td>
+      <td class="num">${breakdownStr}</td>
+      <td class="num">${recvStr}</td>
+      <td class="num">${payStr}</td>
+      <td class="net-cell">${fmt(net(n.id))}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // 說明：這裡的「加總」只是所有代理帳面淨留的參考總和，不需要、也不會剛好等於平台撥款金額，
+  // 因為平台只撥一次整包給總代理（見上方），下面每個代理的數字都是內部分潤試算，不是各自的平台撥款。
+  const totalNet = nodeDefs.reduce((s, n) => s + net(n.id), 0);
+  document.getElementById('checkLine').innerHTML =
+    `所有代理「帳面淨留」加總 = ${fmt(totalNet)}（僅供參考，不代表平台另外撥款）　·　平台實際撥款總代理整包 = ${fmt(finalComm)}`;
+
+  drawEdges();
+}
+
+// ---------- draw connector lines ----------
+function boxCenter(id, edge) {
+  const box = document.getElementById('box-' + id);
+  const rect = box.getBoundingClientRect();
+  const canvasRect = document.getElementById('treeCanvas').getBoundingClientRect();
+  const left = rect.left - canvasRect.left;
+  const top = rect.top - canvasRect.top;
+  if (edge === 'bottom') return { x: left + rect.width / 2, y: top + rect.height };
+  return { x: left + rect.width / 2, y: top };
+}
+
+function drawEdges() {
+  const svg = document.getElementById('edgeSvg');
+  const canvas = document.getElementById('treeCanvas');
+  const scaleX = 900 / canvas.clientWidth;
+  const scaleY = 1550 / canvas.clientHeight;
+  svg.innerHTML = '';
+  edges.forEach(function(edge) {
+    const p = edge[0], c = edge[1];
+    const from = boxCenter(p, 'bottom');
+    const to = boxCenter(c, 'top');
+    const midY = (from.y + to.y) / 2;
+
+    // SVG path 用 viewBox 縮放座標
+    const x1 = from.x * scaleX, y1 = from.y * scaleY;
+    const x2 = to.x * scaleX, y2 = to.y * scaleY;
+    const midYScaled = (y1 + y2) / 2;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' L ' + x1 + ' ' + midYScaled + ' L ' + x2 + ' ' + midYScaled + ' L ' + x2 + ' ' + y2);
+    path.setAttribute('marker-end', 'url(#arrow)');
+    svg.appendChild(path);
+
+    // 金額標籤：用實際畫布像素座標（未縮放），跟著真正的線條轉折點走
+    const label = document.getElementById('edge-' + p + '-' + c);
+    if (label) {
+      label.style.left = to.x + 'px';
+      label.style.top = midY + 'px';
+    }
+  });
+  // arrowhead marker
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  defs.innerHTML = '<marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L6,3 z" fill="#9a9280"/></marker>';
+  svg.appendChild(defs);
+}
+
+// ---------- 重置按鈕 ----------
+var resetTreeBtn = document.getElementById('resetTreeBtn');
+if (resetTreeBtn) {
+  resetTreeBtn.addEventListener('click', function() {
+    nodeDefs.forEach(function(n) {
+      const d = nodeDefaults[n.id];
+      if (!d) return;
+      const setVal = function(prefix, val) {
+        const el = document.getElementById(prefix + '-' + n.id);
+        if (el) el.value = val;
+      };
+      setVal('rate', d.rate);
+      setVal('ggr', d.ggr);
+      setVal('venuefee', d.venuefee);
+      setVal('rebate', d.rebate);
+      setVal('carryin', d.carryin);
+    });
+    safeRender();
+  });
+}
+
+// ---------- wire up inputs ----------
+document.querySelectorAll('.node-box input').forEach(function(inp) {
+  inp.addEventListener('input', safeRender);
+});
+var absorbSwitchEl = document.getElementById('absorbNegSwitch');
+if (absorbSwitchEl) absorbSwitchEl.addEventListener('change', safeRender);
+
+// ---------- GGR返佣設置三開關 ----------
+function updateSwitchBodyClasses() {
+  document.body.classList.toggle('no-rebate', !getRebateDeductSwitch());
+  document.body.classList.toggle('no-venuefee', !getVenueDeductSwitch());
+}
+['rebateDeductSwitch', 'venueDeductSwitch', 'lossVenueFeeSwitch'].forEach(function(id) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', function() {
+    updateSwitchBodyClasses();
+    safeRender();
+  });
+});
+updateSwitchBodyClasses();
+
+// ---------- 共用場館費率 ----------
+var sharedVenueFeeEl = document.getElementById('sharedVenueFee');
+if (sharedVenueFeeEl) sharedVenueFeeEl.addEventListener('input', safeRender);
+
+// ---------- 全局平台費率 ----------
+var globalPlatFeeRateEl = document.getElementById('globalPlatFeeRate');
+if (globalPlatFeeRateEl) globalPlatFeeRateEl.addEventListener('input', safeRender);
+
+// ---------- 平台費計算基礎選擇 ----------
+document.querySelectorAll('input[name="platFeeBase"]').forEach(function(r) {
+  r.addEventListener('change', safeRender);
+});
+
+// ---------- 展延方案選擇 ----------
+document.querySelectorAll('input[name="deferScheme"]').forEach(function(r) {
+  r.addEventListener('change', safeRender);
+});
+
+// ---------- tab switching ----------
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    currentTab = btn.getAttribute('data-tab');
+    document.body.classList.toggle('mode-extend', currentTab === 'extend');
+    var noExt = document.getElementById('noExtendControls');
+    var ext = document.getElementById('extendControls');
+    if (noExt) noExt.style.display = (currentTab === 'extend') ? 'none' : 'flex';
+    if (ext) ext.style.display = (currentTab === 'extend') ? 'block' : 'none';
+    safeRender();
+  });
+});
+window.addEventListener('resize', drawEdges);
+
+function safeRender() {
+  try {
+    render();
+  } catch (err) {
+    console.error(err);
+    var banner = document.getElementById('jsErrorBanner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'jsErrorBanner';
+      banner.style.cssText = 'background:#f7e5e0;color:#7a1f1f;border:1px solid #b8443d;padding:14px 18px;margin-bottom:20px;font-family:monospace;font-size:13px;white-space:pre-wrap;';
+      document.querySelector('.wrap').insertBefore(banner, document.querySelector('.layout'));
+    }
+    banner.textContent = '計算發生錯誤，請按 F12 打開瀏覽器主控台查看詳情：\n' + err.message;
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', safeRender);
+} else {
+  safeRender();
+}
+</script>
+</body>
+</html>
