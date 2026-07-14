@@ -138,8 +138,8 @@
   /* 開關關閉時，隱藏對應欄位 */
   body.no-rebate .rebate-row { display: none; }
   body.no-venuefee .venuefee-row { display: none; }
-  body.no-venuefee #sharedVenueFeeRow { display: none; }
-  body.no-venuefee #lossVenueFeeRow { display: none; }
+  body.no-venuefee [id^="sharedVenueFeeRow"] { display: none; }
+  body.no-venuefee [id^="lossVenueFeeRow"] { display: none; }
   body.no-rebate .term-rebate { display: none; }
   body.no-venuefee .term-venuefee { display: none; }
   body.no-rebate.no-venuefee .term-paren { display: none; }
@@ -428,15 +428,16 @@
     <button type="button" class="tab-btn" data-tab="extend">負盈利展延</button>
   </div>
 
-  <div style="margin-top:16px; padding:16px 18px; background:var(--paper-warm); border:1px solid var(--line); font-size:14px;">
-    <div style="font-weight:700; margin-bottom:12px; font-size:15px;">GGR返佣設置（兩個頁籤都適用）</div>
+  <!-- ===== GGR返佣設置：不展延頁籤專用 ===== -->
+  <div id="ggrSettingsNoExtend" style="margin-top:16px; padding:16px 18px; background:var(--paper-warm); border:1px solid var(--line); font-size:14px;">
+    <div style="font-weight:700; margin-bottom:12px; font-size:15px;">GGR返佣設置（僅「負盈利不展延」頁籤）</div>
 
     <div class="toggle-row">
       <span class="toggle-label">GGR是否扣除返水</span>
       <span class="toggle-wrap">
         <span class="toggle-side">不扣</span>
         <label class="switch">
-          <input type="checkbox" id="rebateDeductSwitch" checked>
+          <input type="checkbox" id="rebateDeductSwitch_noextend">
           <span class="slider"></span>
         </label>
         <span class="toggle-side">扣</span>
@@ -448,30 +449,79 @@
       <span class="toggle-wrap">
         <span class="toggle-side">不扣</span>
         <label class="switch">
-          <input type="checkbox" id="venueDeductSwitch" checked>
+          <input type="checkbox" id="venueDeductSwitch_noextend">
           <span class="slider"></span>
         </label>
         <span class="toggle-side">扣</span>
       </span>
     </div>
 
-    <div class="toggle-row" id="lossVenueFeeRow">
+    <div class="toggle-row" id="lossVenueFeeRow_noextend">
       <span class="toggle-label">平台輸時也計算場館費</span>
       <span class="toggle-wrap">
         <span class="toggle-side">不計算</span>
         <label class="switch">
-          <input type="checkbox" id="lossVenueFeeSwitch">
+          <input type="checkbox" id="lossVenueFeeSwitch_noextend">
           <span class="slider"></span>
         </label>
         <span class="toggle-side">計算</span>
       </span>
     </div>
 
-    <div class="toggle-row" id="sharedVenueFeeRow" style="border-bottom:none;">
+    <div class="toggle-row" id="sharedVenueFeeRow_noextend" style="border-bottom:none;">
       <span class="toggle-label">共用場館費率(%)（一鍵拉齊）</span>
       <span class="toggle-wrap">
-        <input type="number" id="sharedVenueFee" value="" min="0" max="100" step="0.1" placeholder="格式例 百分之十：10" style="width:150px; border:1px solid var(--line); border-radius:3px; font-family:var(--mono); font-size:13px; padding:5px 8px;">
-        <span style="color:var(--ink-muted); font-size:12px;">%　留空＝未啟用</span>
+        <input type="number" id="sharedVenueFee_noextend" value="0" min="-1" max="100" step="0.01" style="width:150px; border:1px solid var(--line); border-radius:3px; font-family:var(--mono); font-size:13px; padding:5px 8px;">
+        <span style="color:var(--ink-muted); font-size:12px;">%　預設0（覆蓋為0%）　-1＝各自場館費率　空值＝視為0%</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- ===== GGR返佣設置：展延頁籤專用 ===== -->
+  <div id="ggrSettingsExtend" style="margin-top:16px; padding:16px 18px; background:var(--paper-warm); border:1px solid var(--line); font-size:14px; display:none;">
+    <div style="font-weight:700; margin-bottom:12px; font-size:15px;">GGR返佣設置（僅「負盈利展延」頁籤）</div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">GGR是否扣除返水</span>
+      <span class="toggle-wrap">
+        <span class="toggle-side">不扣</span>
+        <label class="switch">
+          <input type="checkbox" id="rebateDeductSwitch_extend">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-side">扣</span>
+      </span>
+    </div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">GGR是否扣除場館費用</span>
+      <span class="toggle-wrap">
+        <span class="toggle-side">不扣</span>
+        <label class="switch">
+          <input type="checkbox" id="venueDeductSwitch_extend">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-side">扣</span>
+      </span>
+    </div>
+
+    <div class="toggle-row" id="lossVenueFeeRow_extend">
+      <span class="toggle-label">平台輸時也計算場館費</span>
+      <span class="toggle-wrap">
+        <span class="toggle-side">不計算</span>
+        <label class="switch">
+          <input type="checkbox" id="lossVenueFeeSwitch_extend">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-side">計算</span>
+      </span>
+    </div>
+
+    <div class="toggle-row" id="sharedVenueFeeRow_extend" style="border-bottom:none;">
+      <span class="toggle-label">共用場館費率(%)（一鍵拉齊）</span>
+      <span class="toggle-wrap">
+        <input type="number" id="sharedVenueFee_extend" value="0" min="-1" max="100" step="0.01" style="width:150px; border:1px solid var(--line); border-radius:3px; font-family:var(--mono); font-size:13px; padding:5px 8px;">
+        <span style="color:var(--ink-muted); font-size:12px;">%　預設0（覆蓋為0%）　-1＝各自場館費率　空值＝視為0%</span>
       </span>
     </div>
   </div>
@@ -741,10 +791,14 @@ function getRatePct(id) {
   return isNaN(v) ? 0 : v;
 }
 function getSharedVenueFeeRate() {
-  const el = document.getElementById('sharedVenueFee');
-  if (!el || el.value === '') return null;   // 留空＝未啟用
+  const suffix = currentTab === 'extend' ? '_extend' : '_noextend';
+  const el = document.getElementById('sharedVenueFee' + suffix);
+  if (!el) return null;
+  if (el.value === '') return 0;              // 空值＝視為0%（啟用，覆蓋為0%）
   const v = parseFloat(el.value);
-  return isNaN(v) ? null : v / 100;   // 輸入0＝啟用，覆蓋為0%
+  if (isNaN(v) || v === -1) return null;      // -1＝不啟用，各自場館費率
+  const clamped = Math.min(Math.max(v, 0), 100);   // 上限100
+  return clamped / 100;
 }
 function getVenueFeeRate(id) {
   const shared = getSharedVenueFeeRate();
@@ -793,17 +847,20 @@ function collectOwnGGRs(id) {
   return list;
 }
 
-// GGR返佣設置：三個開關
+// GGR返佣設置：三個開關（每個頁籤各自獨立設定）
 function getRebateDeductSwitch() {
-  const el = document.getElementById('rebateDeductSwitch');
-  return el ? el.checked : true;
+  const suffix = currentTab === 'extend' ? '_extend' : '_noextend';
+  const el = document.getElementById('rebateDeductSwitch' + suffix);
+  return el ? el.checked : false;
 }
 function getVenueDeductSwitch() {
-  const el = document.getElementById('venueDeductSwitch');
-  return el ? el.checked : true;
+  const suffix = currentTab === 'extend' ? '_extend' : '_noextend';
+  const el = document.getElementById('venueDeductSwitch' + suffix);
+  return el ? el.checked : false;
 }
 function getLossVenueFeeSwitch() {
-  const el = document.getElementById('lossVenueFeeSwitch');
+  const suffix = currentTab === 'extend' ? '_extend' : '_noextend';
+  const el = document.getElementById('lossVenueFeeSwitch' + suffix);
   return el ? el.checked : false;
 }
 // 統一計算「扣完場館費、返水」之後的金額，套用上述三個開關
@@ -848,19 +905,20 @@ function platFeeAmount(id) {
   if (currentTab === 'extend') {
     const scheme = getScheme();
     if (scheme === '1') {
-      const effectiveGGR = subtreeGGR(id) + getCarryIn(id);
-      if (effectiveGGR <= 0) return 0;
-      const afterVenue = computeAfterVenue(effectiveGGR, id);
-      const base = platFeeBaseValue(effectiveGGR, afterVenue);
+      const ggrAgg = subtreeStageEffective(id, '1');
+      if (ggrAgg <= 0) return 0;
+      const afterVenueAgg = subtreeAfterVenueFromFlooredGGR(id);
+      const base = platFeeBaseValue(ggrAgg, afterVenueAgg);
       return platFeeOn(base, id);
     }
     if (scheme === '2') {
-      const effectiveAfterVenue = subtreeAfterVenue(id) + getCarryIn(id);
-      if (effectiveAfterVenue <= 0) return 0;
-      const base = platFeeBaseValue(subtreeGGR(id), effectiveAfterVenue);
+      const afterVenueAgg = subtreeStageEffective(id, '2');
+      if (afterVenueAgg <= 0) return 0;
+      const base = platFeeBaseValue(subtreeGGR(id), afterVenueAgg);
       return platFeeOn(base, id);
     }
-    // 方案3：跟不展延一樣的基礎（結餘加在 NGR 之後，不影響平台費計算）
+    // 方案3：平台費已經內含在逐節點計算的NGR裡，不再單獨顯示新的一筆
+    return 0;
   }
   const afterVenue = subtreeAfterVenue(id);
   const base = platFeeBaseValue(subtreeGGR(id), afterVenue);
@@ -879,37 +937,63 @@ function getCarryIn(id) {
   return isNaN(v) ? 0 : v;
 }
 
+// ---------- 展延模式：每個節點的「自己」在對應階段的原始值（尚未加上期結餘） ----------
+function ownStageValue(id, scheme) {
+  if (scheme === '1') return getGGR(id);           // GGR 層級：自己的原始GGR
+  if (scheme === '2') return ownAfterVenue(id);     // GGR返佣 層級：自己扣完場館費/返水後的貢獻
+  // 方案3 NGR 層級：自己扣完場館費/返水/平台費後的貢獻
+  const av = ownAfterVenue(id);
+  const base = platFeeBaseValue(getGGR(id), av);
+  return av - platFeeOn(base, id);
+}
+// 自己在對應階段「加上期結餘」後的有效值，負值歸零（歸零部分不計入加總，只留在自己身上等下期抵銷）
+function effectiveOwnStage(id, scheme) {
+  return Math.max(ownStageValue(id, scheme) + getCarryIn(id), 0);
+}
+// 自己本期結轉到下一期的金額（負值或0，只跟自己有關，不受下線/上級影響）
+function ownStageCarryOut(id, scheme) {
+  return Math.min(ownStageValue(id, scheme) + getCarryIn(id), 0);
+}
+// 整條下線在該階段「已各自歸零」後的加總——每個節點都各自套用歸零判斷，再逐層往上加總
+function subtreeStageEffective(id, scheme) {
+  const ownEff = effectiveOwnStage(id, scheme);
+  return children(id).reduce((sum, cid) => sum + subtreeStageEffective(cid, scheme), ownEff);
+}
+// 方案1專用：用「已歸零的自身GGR」重新算扣完場館費/返水後的加總（每個節點用自己的場館費率套用在自己已歸零的GGR上）
+function subtreeAfterVenueFromFlooredGGR(id) {
+  const ownFloored = effectiveOwnStage(id, '1');
+  const ownAV = computeAfterVenue(ownFloored, id);
+  return children(id).reduce((sum, cid) => sum + subtreeAfterVenueFromFlooredGGR(cid), ownAV);
+}
+
 // settleAmount：
 // 「不展延」：NGR × 層級比例%，套用吸收負盈利開關（開＝≤0歸零；關＝保留負值抵扣上層）
-// 「展延」：依選定方案，在對應階段加回上期結餘；該階段 ≤0 時當期不發佣金（固定歸零），負值留到下一期
+// 「展延」：每個代理自己在對應階段都先加上期結餘、各自歸零判斷，再逐層加總，最後才算平台費、乘層級比例
 function settleAmount(id) {
   if (currentTab === 'extend') {
     const scheme = getScheme();
     const rate = getRate(id);
 
     if (scheme === '1') {
-      // 方案1：GGR 負值展延（場館費、返水都在加回結餘之後才扣，最早階段）
-      const effectiveGGR = subtreeGGR(id) + getCarryIn(id);
-      if (effectiveGGR <= 0) return 0;
-      const afterVenue = computeAfterVenue(effectiveGGR, id);
-      const base = platFeeBaseValue(effectiveGGR, afterVenue);
+      const ggrAgg = subtreeStageEffective(id, '1');       // 已逐節點歸零的GGR加總
+      if (ggrAgg <= 0) return 0;
+      const afterVenueAgg = subtreeAfterVenueFromFlooredGGR(id);
+      const base = platFeeBaseValue(ggrAgg, afterVenueAgg);
       const fee = platFeeOn(base, id);
-      const ngr = afterVenue - fee;
+      const ngr = afterVenueAgg - fee;
       return ngr > 0 ? ngr * rate : 0;
     }
     if (scheme === '2') {
-      // 方案2：GGR返佣 負值展延（平台費在加回結餘之後才扣）
-      // 結餘加在 GGR返佣 這一階，不影響原始 GGR，所以「GGR 基礎」選項這裡用未加結餘的 subtreeGGR
-      const effectiveAfterVenue = subtreeAfterVenue(id) + getCarryIn(id);
-      if (effectiveAfterVenue <= 0) return 0;
-      const base = platFeeBaseValue(subtreeGGR(id), effectiveAfterVenue);
+      const afterVenueAgg = subtreeStageEffective(id, '2'); // 已逐節點歸零的GGR返佣加總
+      if (afterVenueAgg <= 0) return 0;
+      const base = platFeeBaseValue(subtreeGGR(id), afterVenueAgg);
       const fee = platFeeOn(base, id);
-      const ngr = effectiveAfterVenue - fee;
+      const ngr = afterVenueAgg - fee;
       return ngr > 0 ? ngr * rate : 0;
     }
-    // 方案3：NGR 負值展延（最晚階段）
-    const effective = subtreeNGR(id) + getCarryIn(id);
-    return effective > 0 ? effective * rate : 0;
+    // 方案3：已逐節點歸零的NGR加總，直接就是結算基礎
+    const ngrAgg = subtreeStageEffective(id, '3');
+    return ngrAgg > 0 ? ngrAgg * rate : 0;
   }
 
   // 不展延
@@ -918,20 +1002,10 @@ function settleAmount(id) {
   return raw;
 }
 
-// carryOut：展延模式下，本期結轉到下一期的負值（僅供顯示，依方案對應不同階段判斷）
+// carryOut：展延模式下，「自己」本期結轉到下一期的金額（只跟自己的GGR/結餘有關，不受下線影響）
 function carryOut(id) {
   if (currentTab !== 'extend') return 0;
-  const scheme = getScheme();
-  if (scheme === '1') {
-    const effective = subtreeGGR(id) + getCarryIn(id);
-    return effective <= 0 ? effective : 0;
-  }
-  if (scheme === '2') {
-    const effective = subtreeAfterVenue(id) + getCarryIn(id);
-    return effective <= 0 ? effective : 0;
-  }
-  const effective = subtreeNGR(id) + getCarryIn(id);
-  return effective <= 0 ? effective : 0;
+  return ownStageCarryOut(id, getScheme());
 }
 // distFirst：首次派發歸零保護（不論開關為何，一律套用，代理不會反被扣錢包）
 function distFirst(id) {
@@ -1034,6 +1108,29 @@ function render() {
   // right: table
   const tbody = document.getElementById('detailTbody');
   tbody.innerHTML = '';
+
+  // 展延模式：遞迴收集每個節點的顯示用項目字串（有上期結餘的節點會標成「原始±結餘」）
+  function collectDisplayTerms(id, scheme) {
+    const raw = ownStageValue(id, scheme);
+    const carryIn = getCarryIn(id);
+    const kids2 = children(id);
+    let selfTerm = null;
+    if (raw > 0 || kids2.length === 0 || carryIn !== 0) {
+      if (carryIn !== 0) {
+        const effectiveOwn = raw + carryIn;
+        const carryStr = carryIn >= 0 ? ('+' + fmt(carryIn)) : fmt(carryIn);
+        selfTerm = effectiveOwn > 0
+          ? fmt(raw) + carryStr                              // 沒被歸零，正常顯示原始±結餘
+          : `0（原${fmt(raw)}${carryStr}）`;                  // 被歸零，顯示實際貢獻值0，並註明原因
+      } else {
+        selfTerm = fmt(raw);
+      }
+    }
+    let terms = selfTerm !== null ? [selfTerm] : [];
+    kids2.forEach(cid => { terms = terms.concat(collectDisplayTerms(cid, scheme)); });
+    return terms;
+  }
+
   nodeDefs.forEach(n => {
     const kids = children(n.id);
     const own = getGGR(n.id);
@@ -1044,19 +1141,19 @@ function render() {
       ? `${fmt(own)}（無下線）`
       : `${fmt(stGGR)}（${breakdown.map(fmt).join('+')}）`;
 
-    // 展延模式：把上期結餘加回對應階段的效果，用「結果（原始±結餘，說明）」的格式直接顯示原因
+    // 展延模式：改用「每個節點各自歸零後」的正確加總與逐項標示
     if (currentTab === 'extend') {
-      const carryIn = getCarryIn(n.id);
-      if (carryIn !== 0) {
-        const scheme = getScheme();
-        let baseValue;
-        if (scheme === '1') baseValue = stGGR;
-        else if (scheme === '2') baseValue = subtreeAfterVenue(n.id);
-        else baseValue = stNGR;
-        const effective = baseValue + carryIn;
-        const carryStr = carryIn >= 0 ? ('+' + fmt(carryIn)) : fmt(carryIn);
-        const desc = kids.length === 0 ? '無下線' : breakdown.map(fmt).join('+');
-        breakdownStr = `${fmt(effective)}（${fmt(baseValue)}${carryStr}，${desc}）`;
+      const scheme = getScheme();
+      const effective = subtreeStageEffective(n.id, scheme);
+      if (kids.length === 0) {
+        const carryIn = getCarryIn(n.id);
+        const raw = ownStageValue(n.id, scheme);
+        breakdownStr = carryIn !== 0
+          ? `${fmt(effective)}（${fmt(raw)}${carryIn >= 0 ? '+' + fmt(carryIn) : fmt(carryIn)}，無下線）`
+          : `${fmt(effective)}（無下線）`;
+      } else {
+        const terms = collectDisplayTerms(n.id, scheme);
+        breakdownStr = `${fmt(effective)}（${terms.join('+')}）`;
       }
     }
 
@@ -1167,12 +1264,13 @@ document.querySelectorAll('.node-box input').forEach(function(inp) {
 var absorbSwitchEl = document.getElementById('absorbNegSwitch');
 if (absorbSwitchEl) absorbSwitchEl.addEventListener('change', safeRender);
 
-// ---------- GGR返佣設置三開關 ----------
+// ---------- GGR返佣設置三開關（兩頁籤各自一組） ----------
 function updateSwitchBodyClasses() {
   document.body.classList.toggle('no-rebate', !getRebateDeductSwitch());
   document.body.classList.toggle('no-venuefee', !getVenueDeductSwitch());
 }
-['rebateDeductSwitch', 'venueDeductSwitch', 'lossVenueFeeSwitch'].forEach(function(id) {
+['rebateDeductSwitch_noextend', 'venueDeductSwitch_noextend', 'lossVenueFeeSwitch_noextend',
+ 'rebateDeductSwitch_extend', 'venueDeductSwitch_extend', 'lossVenueFeeSwitch_extend'].forEach(function(id) {
   const el = document.getElementById(id);
   if (el) el.addEventListener('change', function() {
     updateSwitchBodyClasses();
@@ -1181,9 +1279,11 @@ function updateSwitchBodyClasses() {
 });
 updateSwitchBodyClasses();
 
-// ---------- 共用場館費率 ----------
-var sharedVenueFeeEl = document.getElementById('sharedVenueFee');
-if (sharedVenueFeeEl) sharedVenueFeeEl.addEventListener('input', safeRender);
+// ---------- 共用場館費率（兩頁籤各自一組） ----------
+['sharedVenueFee_noextend', 'sharedVenueFee_extend'].forEach(function(id) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', safeRender);
+});
 
 // ---------- 全局平台費率 ----------
 var globalPlatFeeRateEl = document.getElementById('globalPlatFeeRate');
@@ -1210,6 +1310,11 @@ document.querySelectorAll('.tab-btn').forEach(function(btn) {
     var ext = document.getElementById('extendControls');
     if (noExt) noExt.style.display = (currentTab === 'extend') ? 'none' : 'flex';
     if (ext) ext.style.display = (currentTab === 'extend') ? 'block' : 'none';
+    var ggrNoExt = document.getElementById('ggrSettingsNoExtend');
+    var ggrExt = document.getElementById('ggrSettingsExtend');
+    if (ggrNoExt) ggrNoExt.style.display = (currentTab === 'extend') ? 'none' : 'block';
+    if (ggrExt) ggrExt.style.display = (currentTab === 'extend') ? 'block' : 'none';
+    updateSwitchBodyClasses();
     safeRender();
   });
 });
