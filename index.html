@@ -430,7 +430,7 @@
 
   <!-- ===== GGR返佣設置：不展延頁籤專用 ===== -->
   <div id="ggrSettingsNoExtend" style="margin-top:16px; padding:16px 18px; background:var(--paper-warm); border:1px solid var(--line); font-size:14px;">
-    <div style="font-weight:700; margin-bottom:12px; font-size:15px;">GGR返佣設置（僅「負盈利不展延」頁籤）</div>
+    <div style="font-weight:700; margin-bottom:12px; font-size:15px;">GGR返佣設置</div>
 
     <div class="toggle-row">
       <span class="toggle-label">GGR是否扣除返水</span>
@@ -479,7 +479,7 @@
 
   <!-- ===== GGR返佣設置：展延頁籤專用 ===== -->
   <div id="ggrSettingsExtend" style="margin-top:16px; padding:16px 18px; background:var(--paper-warm); border:1px solid var(--line); font-size:14px; display:none;">
-    <div style="font-weight:700; margin-bottom:12px; font-size:15px;">GGR返佣設置（僅「負盈利展延」頁籤）</div>
+    <div style="font-weight:700; margin-bottom:12px; font-size:15px;">GGR返佣設置</div>
 
     <div class="toggle-row">
       <span class="toggle-label">GGR是否扣除返水</span>
@@ -553,23 +553,13 @@
   </div>
 
   <div id="extendControls" style="margin-top:16px; padding:12px 16px; background:var(--paper-warm); border:1px solid var(--line); font-size:13.5px; color:var(--ink-soft); display:none;">
-    <div style="margin-bottom:10px;"><b>展延負盈利</b>：某個計算階段為負值時，當期不發佣金，負值累積到「上期結餘」欄位、留到下一期抵銷。三個方案差在「延展發生在哪一個階段」：</div>
+    <div style="margin-bottom:10px;"><b>展延負盈利</b>：某個計算階段為負值時，當期不發佣金，負值累積到「上期結餘」欄位、留到下一期抵銷。</div>
     <div style="margin-bottom:6px; font-size:12.5px; color:var(--ink-muted); font-weight:600;">補充規則：</div>
     <div style="margin-bottom:6px; font-size:12.5px; color:var(--ink-muted);"><code>GGR返佣 ＝ Σ[<span class="term-paren">(</span>GGR<span class="term-venuefee"> − 場館費</span><span class="term-rebate"> − 返水</span><span class="term-paren">)</span> × 場館返佣比例%]</code></div>
     <div style="margin-bottom:10px; font-size:12.5px; color:var(--ink-muted);"><code id="platFeeSummaryFormula">平台費 ＝ GGR返佣 × 平台費率%</code>（平台抽成％＋充提手續費％＋活動費用％）</div>
-    <div style="display:flex; flex-direction:column; gap:6px;">
-      <label style="display:flex; align-items:start; gap:8px; cursor:pointer;">
-        <input type="radio" name="deferScheme" value="1" checked style="margin-top:3px;">
-        <span><b>方案1（GGR 負值展延）</b>：當期佣金 ＝ ((GGR ＋ 上期結餘<span class="term-venuefee"> − 場館費</span><span class="term-rebate"> − 返水</span>) − 平台費) × 層級比例% − 下級佣金　　<span style="color:var(--ink-muted);">— <span class="term-venuefee">場館費、</span><span class="term-rebate">返水</span>都還沒扣之前就展延（最早階段）</span></span>
-      </label>
-      <label style="display:flex; align-items:start; gap:8px; cursor:pointer;">
-        <input type="radio" name="deferScheme" value="2" style="margin-top:3px;">
-        <span><b>方案2（GGR返佣 負值展延）</b>：當期佣金 ＝ (GGR返佣 ＋ 上期結餘 − 平台費) × 層級比例% − 下級佣金　　<span style="color:var(--ink-muted);">— 扣完<span class="term-venuefee">場館費、</span><span class="term-rebate">返水，</span>但平台費還沒扣之前展延</span></span>
-      </label>
-      <label style="display:flex; align-items:start; gap:8px; cursor:pointer;">
-        <input type="radio" name="deferScheme" value="3" style="margin-top:3px;">
-        <span><b>方案3（NGR 負值展延）</b>：當期佣金 ＝ (NGR ＋ 上期結餘) × 層級比例% − 下級佣金　　<span style="color:var(--ink-muted);">— 扣完<span class="term-venuefee">場館費、</span><span class="term-rebate">返水、</span>平台費之後才展延（最晚階段）</span></span>
-      </label>
+    <div>
+      <input type="radio" name="deferScheme" value="1" checked style="display:none;">
+      <b>GGR 負值展延</b>：當期佣金 ＝ ((GGR ＋ 上期結餘<span class="term-venuefee"> − 場館費</span><span class="term-rebate"> − 返水</span>) − 平台費) × 層級比例% − 下級佣金　　<span style="color:var(--ink-muted);">— <span class="term-venuefee">場館費、</span><span class="term-rebate">返水</span>都還沒扣之前就展延（最早階段）</span>
     </div>
   </div>
 </header>
@@ -598,7 +588,7 @@
           <div><span class="r-label">平台實際撥款</span> <span class="r-val" id="recv-root" style="color:#2d5f3f; font-size:15px;">-</span></div>
           <div><span class="r-label">給下級</span> <span class="r-val" id="paydown-root">-</span></div>
           <div class="net-row"><span class="r-label">自己留下（帳面）</span> <span class="r-val" id="net-root">-</span></div>
-          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">本期結轉到下期</span> <span id="carryout-root">-</span></div>
+          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">GGR本期結餘</span> <span id="carryout-root">-</span></div>
         </div>
       </div>
 
@@ -615,7 +605,7 @@
           <div><span class="r-label">拿到</span> <span class="r-val" id="recv-A">-</span></div>
           <div><span class="r-label">給下級</span> <span class="r-val" id="paydown-A">-</span></div>
           <div class="net-row"><span class="r-label">帳面淨留</span> <span class="r-val" id="net-A">-</span></div>
-          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">本期結轉到下期</span> <span id="carryout-A">-</span></div>
+          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">GGR本期結餘</span> <span id="carryout-A">-</span></div>
         </div>
       </div>
 
@@ -631,7 +621,7 @@
         <div class="result-lines">
           <div><span class="r-label">拿到 / 帳面淨留</span></div>
           <div class="net-row"><span class="r-val" id="net-B">-</span></div>
-          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">本期結轉到下期</span> <span id="carryout-B">-</span></div>
+          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">GGR本期結餘</span> <span id="carryout-B">-</span></div>
         </div>
       </div>
 
@@ -647,7 +637,7 @@
         <div class="result-lines">
           <div><span class="r-label">拿到 / 帳面淨留</span></div>
           <div class="net-row"><span class="r-val" id="net-C">-</span></div>
-          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">本期結轉到下期</span> <span id="carryout-C">-</span></div>
+          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">GGR本期結餘</span> <span id="carryout-C">-</span></div>
         </div>
       </div>
 
@@ -664,7 +654,7 @@
           <div><span class="r-label">拿到</span> <span class="r-val" id="recv-D">-</span></div>
           <div><span class="r-label">給下級</span> <span class="r-val" id="paydown-D">-</span></div>
           <div class="net-row"><span class="r-label">帳面淨留</span> <span class="r-val" id="net-D">-</span></div>
-          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">本期結轉到下期</span> <span id="carryout-D">-</span></div>
+          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">GGR本期結餘</span> <span id="carryout-D">-</span></div>
         </div>
       </div>
 
@@ -680,7 +670,7 @@
         <div class="result-lines">
           <div><span class="r-label">拿到 / 帳面淨留</span></div>
           <div class="net-row"><span class="r-val" id="net-E">-</span></div>
-          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">本期結轉到下期</span> <span id="carryout-E">-</span></div>
+          <div class="carryin-row" style="color:#8a5a00;"><span class="r-label" style="color:#8a5a00;">GGR本期結餘</span> <span id="carryout-E">-</span></div>
         </div>
       </div>
 
@@ -965,6 +955,14 @@ function subtreeAfterVenueFromFlooredGGR(id) {
   const ownAV = computeAfterVenue(ownFloored, id);
   return children(id).reduce((sum, cid) => sum + subtreeAfterVenueFromFlooredGGR(cid), ownAV);
 }
+// 展延模式下實際拿去乘層級比例的NGR值（供表格顯示公式用，未做最終歸零）
+function extendNGR(id) {
+  const ggrAgg = subtreeStageEffective(id, '1');
+  const afterVenueAgg = subtreeAfterVenueFromFlooredGGR(id);
+  const base = platFeeBaseValue(ggrAgg, afterVenueAgg);
+  const fee = platFeeOn(base, id);
+  return afterVenueAgg - fee;
+}
 
 // settleAmount：
 // 「不展延」：NGR × 層級比例%，套用吸收負盈利開關（開＝≤0歸零；關＝保留負值抵扣上層）
@@ -1159,7 +1157,11 @@ function render() {
 
     let recvStr;
     if (currentTab === 'extend') {
-      recvStr = `依方案${getScheme()}公式（含上期結餘）→ ${fmt(received(n.id))}`;
+      const ngr = extendNGR(n.id);
+      const rawRecv = ngr * getRate(n.id);
+      recvStr = rawRecv < 0
+        ? `NGR ${fmt(ngr)} × ${getRatePct(n.id)}% = ${fmt(rawRecv)} → 歸零保護 → 0`
+        : `NGR ${fmt(ngr)} × ${getRatePct(n.id)}% = ${fmt(received(n.id))}`;
     } else {
       const rawRecv = stNGR * getRate(n.id);
       recvStr = rawRecv < 0
